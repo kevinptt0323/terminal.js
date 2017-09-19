@@ -1,5 +1,6 @@
 describe('TermState', function() {
 	var TermState = Terminal.TermState;
+	var ch_one = "\u4e00"; // "一"; one in chinese
 
 	function newTermState(w, h) {
 		var t = new TermState({rows:h, columns:w});
@@ -24,6 +25,14 @@ describe('TermState', function() {
 		expect(t.toString()).to.be("Hello World\nHello World");
 		t.write("\n");
 		expect(t.toString()).to.be("Hello World\nHello World\n");
+	});
+	it("writes to TermState in wcwidth mode", function() {
+		var t = newTermState();
+		var msg = "Hello " + ch_one;
+		t.setMode('stringWidth', 'wcwidth');
+		t.write(msg);
+		expect(t.toString()).to.be(msg);
+		expect(t._buffer.attr[0][Util.getWidth('wcwidth', msg)]).to.be.a("object");
 	});
 	it("sets cursor", function() {
 		var t = newTermState(10, 10);
@@ -228,6 +237,14 @@ describe('TermState', function() {
 		});
 		t.write("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11");
 	});
+	it("eraseCharacters", function() {
+		var t = newTermState(10, 10);
+		t.setMode('stringWidth', 'wcwidth');
+		t.write("12" + ch_one + "3" + ch_one + "45");
+		t.setCursor(1,0);
+		t.eraseCharacters(7);
+		expect(t.toString()).to.be("1       5");
+	});
 	it("erases below", function() {
 		var t = newTermState(10, 10);
 		t.write("1Line1234567890\n2\n3\n4\n5\n6\n7\n8\n9");
@@ -299,6 +316,16 @@ describe('TermState', function() {
 		expect(t._buffer.attr[0]["DEFGHI".length]).to.be.a("object");
 	});
 
+	it("should remove characters correctly with wcwidth mode", function() {
+		var t = newTermState(80,24);
+		t.setMode('stringWidth', 'wcwidth');
+		t.write("AB" + ch_one + "CD");
+		t.setCursor(1,0);
+		t.removeChar(2);
+		expect(t._buffer.str[0]).to.be("A CD");
+		expect(t._buffer.attr[0][Util.getWidth('wcwidth', "A CD")]).to.be.a("object");
+	});
+
 	it("should print normal characters when theres no graphical representation", function() {
 		var t = newTermState(80,24);
 		t.setMode('graphic', true);
@@ -324,9 +351,21 @@ describe('TermState', function() {
 		expect(t._buffer.attr[0][5].bold).to.be(true)
 	});
 
+	it("inserts whitespaces in wcwidth", function() {
+		var t = newTermState();
+		t.setMode('stringWidth', 'wcwidth');
+		t.write("abc" + ch_one);
+		t.setAttribute('bold', true);
+		t.write("def");
+		t.setCursor(3,0);
+		t.insertBlank(2);
+		expect(t._buffer.str[0]).to.be("abc  " + ch_one + "def");
+		expect(t._buffer.attr[0][0].bold).to.be(false)
+		expect(t._buffer.attr[0][7].bold).to.be(true)
+	});
+
 	it("stringWidth with wcwidth mode", function() {
 		var t = newTermState(10, 10);
-		var ch_one = "\u4e00"; // "一"; one in chinese
 		t.setMode('stringWidth', 'wcwidth');
 		t.write("abcdefgh");
 		t.write(ch_one);
@@ -341,7 +380,6 @@ describe('TermState', function() {
 	});
 	it("stringWidth with wcwidth mode with insert mode", function() {
 		var t = newTermState(10, 10);
-		var ch_one = "\u4e00"; // "一"; one in chinese
 		t.setMode('stringWidth', 'wcwidth');
 		t.setMode('insert', true);
 		t.write("__");
@@ -351,7 +389,6 @@ describe('TermState', function() {
   });
 	it("stringWidth with wcwidth mode with insert mode and linebreak", function() {
 		var t = newTermState(10, 10);
-		var ch_one = "\u4e00"; // "一"; one in chinese
 		t.setMode('stringWidth', 'wcwidth');
 		t.setMode('insert', true);
 		t.write("abcdefgh" + ch_one);
@@ -362,5 +399,22 @@ describe('TermState', function() {
 
 		t.write(ch_one + ch_one);
 		expect(t.toString()).to.be("abcdef!" + ch_one + " \n" + ch_one);
+	});
+	it("eraseInLine in wcwidth mode", function() {
+		var test_string = "ab" + ch_one + "efghij";
+
+		var t = newTermState(10, 10);
+		t.setMode('stringWidth', 'wcwidth');
+		t.write(test_string);
+		t.setCursor(4,0);
+		t.eraseInLine(0);
+		expect(t.toString()).to.be("ab" + ch_one);
+
+		t = newTermState(10, 10);
+		t.setMode('stringWidth', 'wcwidth');
+		t.write(test_string);
+		t.setCursor(4,0);
+		t.eraseInLine(1);
+		expect(t.toString()).to.be("    efghij");
 	});
 });

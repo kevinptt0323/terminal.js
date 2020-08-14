@@ -30,7 +30,9 @@ describe('TermState', function() {
 		var t = newTermState();
 		var msg = "Hello " + ch_one;
 		t.setMode('stringWidth', 'wcwidth');
+		t.setAttribute('bold', true);
 		t.write(msg);
+		t.setAttribute('bold', false);
 		expect(t.toString()).to.be(msg);
 		expect(t._buffer.attr[0][Util.getWidth('wcwidth', msg)]).to.be.a("object");
 	});
@@ -309,7 +311,9 @@ describe('TermState', function() {
 
 	it("should remove characters correctly", function() {
 		var t = newTermState(80,24);
+		t.setAttribute('bold', true);
 		t.write("ABCDEFGHI");
+		t.setAttribute('bold', false);
 		t.setCursor(0,0);
 		t.removeChar(3);
 		expect(t._buffer.str[0]).to.be("DEFGHI");
@@ -319,7 +323,9 @@ describe('TermState', function() {
 	it("should remove characters correctly with wcwidth mode", function() {
 		var t = newTermState(80,24);
 		t.setMode('stringWidth', 'wcwidth');
+		t.setAttribute('bold', true);
 		t.write("AB" + ch_one + "CD");
+		t.setAttribute('bold', false);
 		t.setCursor(1,0);
 		t.removeChar(2);
 		expect(t._buffer.str[0]).to.be("A CD");
